@@ -1,6 +1,9 @@
 package dhcpv4
 
-import "errors"
+import (
+	"errors"
+	"net"
+)
 
 var (
 	ErrShortPacket = errors.New("dhcpv4: short packet")
@@ -142,4 +145,76 @@ func (p RawPacket) ParseOptions() (OptionMap, error) {
 	}
 
 	return opts, nil
+}
+
+type Packet struct {
+	RawPacket
+	OptionMap
+}
+
+type Request Packet
+
+type Reply Packet
+
+// Get addresses from any packet
+func (p *Packet) GetCIAddr() net.IP { return net.IP(p.CIAddr()) }
+func (p *Packet) GetYIAddr() net.IP { return net.IP(p.YIAddr()) }
+func (p *Packet) GetSIAddr() net.IP { return net.IP(p.SIAddr()) }
+func (p *Packet) GetGIAddr() net.IP { return net.IP(p.GIAddr()) }
+
+// Set addresses on replies
+func (rep *Reply) SetCIAddr(ip net.IP) { copy(rep.CIAddr(), ip) }
+func (rep *Reply) SetYIAddr(ip net.IP) { copy(rep.YIAddr(), ip) }
+func (rep *Reply) SetSIAddr(ip net.IP) { copy(rep.SIAddr(), ip) }
+func (rep *Reply) SetGIAddr(ip net.IP) { copy(rep.GIAddr(), ip) }
+
+func NewRequestFromBytes(b []byte) (*Request, error) {
+	if len(b) < 240 {
+		return nil, ErrShortPacket
+	}
+
+	opts, err := RawPacket(b).ParseOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	req := &Request{
+		RawPacket: RawPacket(b),
+		OptionMap: opts,
+	}
+
+	return req, nil
+}
+
+func NewReplyFromRequest(req *Request) (*Reply, error) {
+	rep := &Reply{
+		RawPacket: make([]byte, 240),
+		OptionMap: make(OptionMap),
+	}
+
+	rep.Op()[0] = byte(BootReply)
+
+	// Hardware type and address length
+	rep.HType()[0] = 1 // Ethernet
+	rep.HLen()[0] = 6  // MAC-48 is 6 octets
+
+	// Copy transaction identifier
+	copy(rep.XId(), req.XId())
+
+	// Copy flags
+	copy(rep.Flags(), req.Flags())
+
+	// Copy relay agent IP address
+	copy(rep.GIAddr(), req.GIAddr())
+
+	// Copy client hardware address
+	copy(rep.CHAddr(), req.CHAddr())
+
+	// Set cookie
+	copy(rep.Cookie(), []byte{99, 130, 83, 99})
+
+	// The remainder of the fields are set depending on the outcome of the
+	// handler. Once the packet has been filled in, it should be validated before
+	// sending it out on the wire.
+	return rep, nil
 }
