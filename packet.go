@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	ErrShortPacket = errors.New("dhcpv4: short packet")
+	ErrShortPacket   = errors.New("dhcpv4: short packet")
+	ErrInvalidPacket = errors.New("dhcpv4: invalid packet")
 )
 
 type OpCode byte
@@ -71,6 +72,61 @@ func (p RawPacket) Cookie() []byte {
 // Options returns the variable-sized `options` portion of the packet.
 func (p RawPacket) Options() []byte {
 	return p[240:]
+}
+
+// GetCIAddr sets the current IP address of the client.
+func (p RawPacket) GetCIAddr() net.IP {
+	return net.IP(p.CIAddr())
+}
+
+// SetCIAddr sets the current IP address of the client.
+//
+// From RFC2131 section 3.5:
+// The client fills in the 'ciaddr' field only when correctly configured with
+// an IP address in BOUND, RENEWING or REBINDING state.
+func (p RawPacket) SetCIAddr(ip net.IP) {
+	copy(p.CIAddr(), ip)
+}
+
+// GetYIAddr gets the IP address offered or assigned to the client.
+func (p RawPacket) GetYIAddr() net.IP {
+	return net.IP(p.YIAddr())
+}
+
+// SetYIAddr sets the IP address offered or assigned to the client.
+//
+// From RFC2131 section 3.1:
+// Each server may respond with a DHCPOFFER message that includes an available
+// network address in the 'yiaddr' field.
+func (p RawPacket) SetYIAddr(ip net.IP) {
+	copy(p.YIAddr(), ip)
+}
+
+// GetSIAddr gets the IP address of the next server to use in bootstrap.
+func (p RawPacket) GetSIAddr() net.IP {
+	return net.IP(p.SIAddr())
+}
+
+// SetSIAddr sets the IP address of the next server to use in bootstrap.
+//
+// From RFC2131 section 2: DHCP clarifies the interpretation of the 'siaddr'
+// field as the address of the server to use in the next step of the client's
+// bootstrap process. Returned in DHCPOFFER, DHCPACK by server.
+func (p RawPacket) SetSIAddr(ip net.IP) {
+	copy(p.SIAddr(), ip)
+}
+
+// GetGIAddr gets the IP address of the relay agent.
+func (p RawPacket) GetGIAddr() net.IP {
+	return net.IP(p.GIAddr())
+}
+
+// SetGIAddr sets the IP address of the relay agent.
+//
+// From RFC2131 section 2: Relay agent IP address, used in booting via a relay
+// agent.
+func (p RawPacket) SetGIAddr(ip net.IP) {
+	copy(p.GIAddr(), ip)
 }
 
 func parseOptionBuffer(x []byte, opts OptionMap) error {
@@ -152,69 +208,161 @@ type Packet struct {
 	OptionMap
 }
 
-type Request Packet
-
-type Reply Packet
-
-// Get addresses from any packet
-func (p *Packet) GetCIAddr() net.IP { return net.IP(p.CIAddr()) }
-func (p *Packet) GetYIAddr() net.IP { return net.IP(p.YIAddr()) }
-func (p *Packet) GetSIAddr() net.IP { return net.IP(p.SIAddr()) }
-func (p *Packet) GetGIAddr() net.IP { return net.IP(p.GIAddr()) }
-
-// Set addresses on replies
-func (rep *Reply) SetCIAddr(ip net.IP) { copy(rep.CIAddr(), ip) }
-func (rep *Reply) SetYIAddr(ip net.IP) { copy(rep.YIAddr(), ip) }
-func (rep *Reply) SetSIAddr(ip net.IP) { copy(rep.SIAddr(), ip) }
-func (rep *Reply) SetGIAddr(ip net.IP) { copy(rep.GIAddr(), ip) }
-
-func NewRequestFromBytes(b []byte) (*Request, error) {
-	if len(b) < 240 {
-		return nil, ErrShortPacket
-	}
-
-	opts, err := RawPacket(b).ParseOptions()
-	if err != nil {
-		return nil, err
-	}
-
-	req := &Request{
-		RawPacket: RawPacket(b),
-		OptionMap: opts,
-	}
-
-	return req, nil
-}
-
-func NewReplyFromRequest(req *Request) (*Reply, error) {
-	rep := &Reply{
+// NewPacket creates and returns a new packet with the specified OpCode.
+func NewPacket(o OpCode) Packet {
+	p := Packet{
 		RawPacket: make([]byte, 240),
 		OptionMap: make(OptionMap),
 	}
 
-	rep.Op()[0] = byte(BootReply)
+	copy(p.Op(), []byte{byte(o)})
+	copy(p.Cookie(), []byte{99, 130, 83, 99})
 
-	// Hardware type and address length
-	rep.HType()[0] = 1 // Ethernet
-	rep.HLen()[0] = 6  // MAC-48 is 6 octets
+	return p
+}
 
-	// Copy transaction identifier
-	copy(rep.XId(), req.XId())
+// GetOption gets the []byte value of an option.
+func (p Packet) GetOption(o Option) ([]byte, bool) {
+	v, ok := p.OptionMap[o]
+	return v, ok
+}
 
-	// Copy flags
-	copy(rep.Flags(), req.Flags())
+// SetOption sets the []byte value of an option.
+func (p Packet) SetOption(o Option, v []byte) {
+	p.OptionMap[o] = v
+	return
+}
 
-	// Copy relay agent IP address
-	copy(rep.GIAddr(), req.GIAddr())
+// PacketFromBytes deserializes the wire-level representation of a DHCP packet
+// contained in the []byte b into a Packet struct. The function returns an
+// error if the packet is malformed. The contents of []byte b is copied into
+// the resulting structure and can be reused after this function has returned.
+func PacketFromBytes(b []byte) (Packet, error) {
+	var err error
 
-	// Copy client hardware address
-	copy(rep.CHAddr(), req.CHAddr())
+	if len(b) < 240 {
+		return Packet{}, ErrShortPacket
+	}
 
-	// Set cookie
-	copy(rep.Cookie(), []byte{99, 130, 83, 99})
+	p := Packet{
+		RawPacket: make(RawPacket, len(b)),
+	}
 
-	// The remainder of the fields are set depending on the outcome of the
-	// handler. Once the packet has been filled in, it should be validated before
-	// sending it out on the wire.
-	return rep, nil
+	copy(p.RawPacket, b)
+
+	p.OptionMap, err = p.ParseOptions()
+	if err != nil {
+		return Packet{}, err
+	}
+
+	return p, nil
+}
+
+// PacketToBytes serializes the DHCP packet pointed to by p into its wire-level
+// representation. The function may return an error if it cannot successfully
+// serialize the packet. Otherwise, it returns a newly created byte slice.
+func PacketToBytes(p Packet) ([]byte, error) {
+	if len(p.RawPacket) < 240 {
+		return nil, ErrInvalidPacket
+	}
+
+	// TODO(PN): Optionally use a DHCP request packet to determine the maximum
+	// length of the response (for now, just a common Ethernet MTU)
+	// https://www.pivotaltracker.com/story/show/68123692
+	maxlen := 1500
+
+	// Buffers we can stash options in
+	b := [][]byte{
+		// Variable length options field (starting at byte 240)
+		make([]byte, 0, maxlen-240),
+		// Fixed length "file" field (from byte 108 to byte 236)
+		make([]byte, 0, 236-108),
+		// Fixed length "sname" field (from byte 44 to byte 108)
+		make([]byte, 0, 108-44),
+	}
+
+	// Write options to one of the buffers
+	for k, v := range p.OptionMap {
+		l := 2 + len(v)
+
+		// TODO(PN): Deal with DHCP options of length > 255
+		// https://www.pivotaltracker.com/story/show/68123382
+		if len(v) > 255 {
+			continue
+		}
+
+		for i := range b {
+			cb := cap(b[i])
+			lb := len(b[i])
+			f := cb - lb
+
+			// The first buffer needs to have at least 3 bytes extra for OptionOverload
+			if i == 0 {
+				f -= 3
+			}
+
+			// Every buffer needs to have at least 1 byte extra for OptionEnd
+			f--
+
+			// Check that this buffer has room for this option
+			if f < l {
+				continue
+			}
+
+			// Write option to buffer
+			b[i] = b[i][:lb+l]
+			b[i][lb+0] = byte(k)
+			b[i][lb+1] = byte(len(v))
+			copy(b[i][lb+2:], v)
+			break
+		}
+	}
+
+	// Add OptionEnd to the buffers that need one
+	for i := range b {
+		lb := len(b[i])
+		if i == 0 || lb > 0 {
+			b[i] = b[i][:lb+1]
+			b[i][lb] = byte(OptionEnd)
+		}
+	}
+
+	// Capacity: base packet, optional OptionOverload option, and options field
+	oc := 240 + 3 + len(b[0])
+	ol := 0
+	o := make([]byte, ol, oc)
+
+	// Copy base packet
+	copy(o[0:240], p.RawPacket[0:240])
+	ol = 240
+
+	// Copy options overloaded into the SName and File sections
+	if len(b[1]) > 0 || len(b[2]) > 0 {
+		overload := 0x0
+
+		// File section
+		if len(b[1]) > 0 {
+			overload |= 0x1
+			copy(o[108:236], b[1])
+		}
+
+		// SName section
+		if len(b[2]) > 0 {
+			overload |= 0x2
+			copy(o[44:108], b[2])
+		}
+
+		// Add OptionOverload
+		o = o[:ol+3]
+		o[ol+0] = byte(OptionOverload)
+		o[ol+1] = byte(1)
+		o[ol+2] = byte(overload)
+		ol += 3
+	}
+
+	// Add options
+	o = o[:ol+len(b[0])]
+	copy(o[ol:ol+len(b[0])], b[0])
+
+	return o, nil
 }
