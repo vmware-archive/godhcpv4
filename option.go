@@ -88,14 +88,14 @@ const (
 	OptionServerName     = Option(66)
 	OptionBootfileName   = Option(67)
 	OptionDHCPMsgType    = Option(53)
-	OptionDHCPServerId   = Option(54)
+	OptionDHCPServerID   = Option(54)
 	OptionParameterList  = Option(55)
 	OptionDHCPMessage    = Option(56)
 	OptionDHCPMaxMsgSize = Option(57)
 	OptionRenewalTime    = Option(58)
 	OptionRebindingTime  = Option(59)
-	OptionClassId        = Option(60)
-	OptionClientId       = Option(61)
+	OptionClassID        = Option(60)
+	OptionClientID       = Option(61)
 )
 
 // From RFC2241: DHCP Options for Novell Directory Services
@@ -230,7 +230,7 @@ const (
 
 // From RFC4776: Dynamic Host Configuration Protocol (DHCPv4 and DHCPv6) Option for Civic Addresses Configuration Information
 const (
-	OptionGEOCONF_CIVIC = Option(99)
+	OptionGeoConfCivic = Option(99)
 )
 
 // From RFC4833: Timezone Options for DHCP

@@ -195,12 +195,12 @@ func TestPacketToBytes(t *testing.T) {
 			return nil, nil, false
 		}
 
-		p_, err := PacketFromBytes(b)
+		q, err := PacketFromBytes(b)
 		if !assert.Nil(t, err) {
 			return nil, nil, false
 		}
 
-		return p.OptionMap, p_.OptionMap, true
+		return p.OptionMap, q.OptionMap, true
 	}
 
 	fillOptions := func(upto int) bool {
