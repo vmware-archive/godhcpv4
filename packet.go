@@ -18,20 +18,6 @@ const (
 	BootReply   = OpCode(2)
 )
 
-type MessageType byte
-
-// Message types defined in RFC2132.
-const (
-	DhcpDiscover = MessageType(1)
-	DhcpOffer    = MessageType(2)
-	DhcpRequest  = MessageType(3)
-	DhcpDecline  = MessageType(4)
-	DhcpAck      = MessageType(5)
-	DhcpNak      = MessageType(6)
-	DhcpRelease  = MessageType(7)
-	DhcpInform   = MessageType(8)
-)
-
 type RawPacket []byte
 
 func (p RawPacket) Op() []byte     { return p[0:1] }

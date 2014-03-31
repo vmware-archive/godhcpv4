@@ -1,5 +1,19 @@
 package dhcpv4
 
+// MessageType is the type for the various DHCP messages defined in RFC2132.
+type MessageType byte
+
+const (
+	MessageTypeDhcpDiscover = MessageType(1)
+	MessageTypeDhcpOffer    = MessageType(2)
+	MessageTypeDhcpRequest  = MessageType(3)
+	MessageTypeDhcpDecline  = MessageType(4)
+	MessageTypeDhcpAck      = MessageType(5)
+	MessageTypeDhcpNak      = MessageType(6)
+	MessageTypeDhcpRelease  = MessageType(7)
+	MessageTypeDhcpInform   = MessageType(8)
+)
+
 // Option is the type for DHCP option tags.
 type Option byte
 
