@@ -20,6 +20,18 @@ type Option byte
 // OptionMap maps DHCP option tags to their values.
 type OptionMap map[Option][]byte
 
+// GetOption gets the []byte value of an option.
+func (om OptionMap) GetOption(o Option) ([]byte, bool) {
+	v, ok := om[o]
+	return v, ok
+}
+
+// SetOption sets the []byte value of an option.
+func (om OptionMap) SetOption(o Option, v []byte) {
+	om[o] = v
+	return
+}
+
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
 const (
 	// RFC2132 Section 3: RFC 1497 Vendor Extensions

@@ -207,18 +207,6 @@ func NewPacket(o OpCode) Packet {
 	return p
 }
 
-// GetOption gets the []byte value of an option.
-func (p Packet) GetOption(o Option) ([]byte, bool) {
-	v, ok := p.OptionMap[o]
-	return v, ok
-}
-
-// SetOption sets the []byte value of an option.
-func (p Packet) SetOption(o Option, v []byte) {
-	p.OptionMap[o] = v
-	return
-}
-
 // PacketFromBytes deserializes the wire-level representation of a DHCP packet
 // contained in the []byte b into a Packet struct. The function returns an
 // error if the packet is malformed. The contents of []byte b is copied into
