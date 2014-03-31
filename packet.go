@@ -207,6 +207,28 @@ func NewPacket(o OpCode) Packet {
 	return p
 }
 
+// NewReply creates and returns a new reply packet given a request.
+func NewReply(req Packet) Packet {
+	rep := NewPacket(BootReply)
+
+	// Hardware type and address length
+	rep.HType()[0] = 1 // Ethernet
+	rep.HLen()[0] = 6  // MAC-48 is 6 octets
+
+	// Copy transaction identifier
+	copy(rep.XId(), req.XId())
+
+	// Copy fields from request (per RFC2131, section 4.3, table 3)
+	copy(rep.Flags(), req.Flags())
+	copy(rep.CHAddr(), req.CHAddr())
+	copy(rep.GIAddr(), req.GIAddr())
+
+	// The remainder of the fields are set depending on the outcome of the
+	// handler. Once the packet has been filled in, it should be validated before
+	// sending it out on the wire.
+	return rep
+}
+
 // PacketFromBytes deserializes the wire-level representation of a DHCP packet
 // contained in the []byte b into a Packet struct. The function returns an
 // error if the packet is malformed. The contents of []byte b is copied into
