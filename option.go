@@ -4,14 +4,14 @@ package dhcpv4
 type MessageType byte
 
 const (
-	MessageTypeDhcpDiscover = MessageType(1)
-	MessageTypeDhcpOffer    = MessageType(2)
-	MessageTypeDhcpRequest  = MessageType(3)
-	MessageTypeDhcpDecline  = MessageType(4)
-	MessageTypeDhcpAck      = MessageType(5)
-	MessageTypeDhcpNak      = MessageType(6)
-	MessageTypeDhcpRelease  = MessageType(7)
-	MessageTypeDhcpInform   = MessageType(8)
+	MessageTypeDHCPDiscover = MessageType(1)
+	MessageTypeDHCPOffer    = MessageType(2)
+	MessageTypeDHCPRequest  = MessageType(3)
+	MessageTypeDHCPDecline  = MessageType(4)
+	MessageTypeDHCPAck      = MessageType(5)
+	MessageTypeDHCPNak      = MessageType(6)
+	MessageTypeDHCPRelease  = MessageType(7)
+	MessageTypeDHCPInform   = MessageType(8)
 )
 
 // Option is the type for DHCP option tags.
