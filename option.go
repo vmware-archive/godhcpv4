@@ -17,6 +17,7 @@ const (
 // Option is the type for DHCP option tags.
 type Option byte
 
+// OptionMap maps DHCP option tags to their values.
 type OptionMap map[Option][]byte
 
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
