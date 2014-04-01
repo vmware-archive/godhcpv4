@@ -29,7 +29,6 @@ func (om OptionMap) GetOption(o Option) ([]byte, bool) {
 // SetOption sets the []byte value of an option.
 func (om OptionMap) SetOption(o Option, v []byte) {
 	om[o] = v
-	return
 }
 
 // GetMessageType gets the message type from the DHCPMsgType option field.
@@ -45,7 +44,6 @@ func (om OptionMap) GetMessageType() MessageType {
 // SetMessageType sets the message type in the DHCPMsgType option field.
 func (om OptionMap) SetMessageType(m MessageType) {
 	om.SetOption(OptionDHCPMsgType, []byte{byte(m)})
-	return
 }
 
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
