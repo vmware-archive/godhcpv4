@@ -1,7 +1,12 @@
 package dhcpv4
 
+// DHCPNak is a server to client packet indicating client's notion of network
+// address is incorrect (e.g., client has moved to new subnet) or client's
+// lease as expired.
 type DHCPNak struct {
 	Packet
+
+	req Packet
 }
 
 // From RFC2131, table 3:
@@ -32,6 +37,11 @@ var dhcpNakValidation = []Validation{
 	ValidateAllowedOptions(dhcpNakAllowedOptions),
 }
 
-func (d *DHCPNak) Validate() error {
+func (d DHCPNak) Validate() error {
 	return Validate(d.Packet, dhcpNakValidation)
+}
+
+func (d DHCPNak) ToBytes() ([]byte, error) {
+	// TODO(PN): Must not use file/sname fields
+	return PacketToBytes(d.Packet)
 }

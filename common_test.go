@@ -63,3 +63,12 @@ func (r replyValidationTestCase) Test(t *testing.T) {
 		assert.Error(t, err)
 	}
 }
+
+type testReplyWriter struct {
+	wrote bool
+}
+
+func (t *testReplyWriter) WriteReply(r Reply) error {
+	t.wrote = true
+	return nil
+}

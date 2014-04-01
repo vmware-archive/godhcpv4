@@ -1,5 +1,7 @@
 package dhcpv4
 
+// DHCPAck is a server to client packet with configuration parameters,
+// including committed network address.
 type DHCPAck struct {
 	Packet
 
@@ -38,7 +40,7 @@ var dhcpAckValidation = []Validation{
 	ValidateMustNot(OptionDHCPMaxMsgSize),
 }
 
-func (d *DHCPAck) Validate() error {
+func (d DHCPAck) Validate() error {
 	var err error
 
 	// Validation is subtly different based on type of request
@@ -54,4 +56,8 @@ func (d *DHCPAck) Validate() error {
 	}
 
 	return Validate(d.Packet, dhcpAckValidation)
+}
+
+func (d DHCPAck) ToBytes() ([]byte, error) {
+	return PacketToBytes(d.Packet)
 }

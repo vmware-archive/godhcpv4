@@ -5,7 +5,10 @@ import "testing"
 func TestDHCPOfferValidation(t *testing.T) {
 	testCase := replyValidationTestCase{
 		newReply: func() ValidatingReply {
-			return &DHCPOffer{NewPacket(BootReply)}
+			return &DHCPOffer{
+				Packet: NewPacket(BootReply),
+				req:    NewPacket(BootRequest),
+			}
 		},
 		must: []Option{
 			OptionAddressTime,

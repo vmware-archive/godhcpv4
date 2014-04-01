@@ -5,7 +5,10 @@ import "testing"
 func TestDHCPNakValidation(t *testing.T) {
 	testCase := replyValidationTestCase{
 		newReply: func() ValidatingReply {
-			return &DHCPNak{NewPacket(BootReply)}
+			return &DHCPNak{
+				Packet: NewPacket(BootReply),
+				req:    NewPacket(BootRequest),
+			}
 		},
 		must: []Option{
 			OptionDHCPServerID,

@@ -1,7 +1,11 @@
 package dhcpv4
 
+// DHCPOffer is a server to client packet in response to DHCPDISCOVER with
+// offer of configuration parameters.
 type DHCPOffer struct {
 	Packet
+
+	req Packet
 }
 
 // From RFC2131, table 3:
@@ -28,6 +32,10 @@ var dhcpOfferValidation = []Validation{
 	ValidateMustNot(OptionDHCPMaxMsgSize),
 }
 
-func (d *DHCPOffer) Validate() error {
+func (d DHCPOffer) Validate() error {
 	return Validate(d.Packet, dhcpOfferValidation)
+}
+
+func (d DHCPOffer) ToBytes() ([]byte, error) {
+	return PacketToBytes(d.Packet)
 }
