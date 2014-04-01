@@ -45,3 +45,7 @@ func (d DHCPNak) ToBytes() ([]byte, error) {
 	// TODO(PN): Must not use file/sname fields
 	return PacketToBytes(d.Packet)
 }
+
+func (d DHCPNak) Request() Packet {
+	return d.req
+}

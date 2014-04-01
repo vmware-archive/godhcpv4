@@ -61,3 +61,7 @@ func (d DHCPAck) Validate() error {
 func (d DHCPAck) ToBytes() ([]byte, error) {
 	return PacketToBytes(d.Packet)
 }
+
+func (d DHCPAck) Request() Packet {
+	return d.req
+}

@@ -39,3 +39,7 @@ func (d DHCPOffer) Validate() error {
 func (d DHCPOffer) ToBytes() ([]byte, error) {
 	return PacketToBytes(d.Packet)
 }
+
+func (d DHCPOffer) Request() Packet {
+	return d.req
+}
