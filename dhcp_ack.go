@@ -1,5 +1,7 @@
 package dhcpv4
 
+import "encoding/binary"
+
 // DHCPAck is a server to client packet with configuration parameters,
 // including committed network address.
 type DHCPAck struct {
@@ -59,7 +61,14 @@ func (d DHCPAck) Validate() error {
 }
 
 func (d DHCPAck) ToBytes() ([]byte, error) {
-	return PacketToBytes(d.Packet)
+	opts := packetToBytesOptions{}
+
+	// Copy MaxMsgSize if set in the request
+	if v, ok := d.Request().GetOption(OptionDHCPMaxMsgSize); ok {
+		opts.maxLen = binary.BigEndian.Uint16(v)
+	}
+
+	return PacketToBytes(d.Packet, &opts)
 }
 
 func (d DHCPAck) Request() Packet {

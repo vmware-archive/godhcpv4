@@ -254,27 +254,42 @@ func PacketFromBytes(b []byte) (Packet, error) {
 	return p, nil
 }
 
+type packetToBytesOptions struct {
+	maxLen    uint16
+	skipFile  bool
+	skipSName bool
+}
+
 // PacketToBytes serializes the DHCP packet pointed to by p into its wire-level
 // representation. The function may return an error if it cannot successfully
 // serialize the packet. Otherwise, it returns a newly created byte slice.
-func PacketToBytes(p Packet) ([]byte, error) {
+func PacketToBytes(p Packet, opts *packetToBytesOptions) ([]byte, error) {
 	if len(p.RawPacket) < 240 {
 		return nil, ErrInvalidPacket
 	}
 
-	// TODO(PN): Optionally use a DHCP request packet to determine the maximum
-	// length of the response (for now, just a common Ethernet MTU)
-	// https://www.pivotaltracker.com/story/show/68123692
-	maxlen := 1500
+	// Maximum byte length of serialized packet (default is Ethernet MTU).
+	var maxLen uint16 = 1500
+
+	// The mininum "Maximum DHCP Message Size" is 576 (RFC2132, 9.10).
+	if opts != nil && opts.maxLen > 576 {
+		maxLen = opts.maxLen
+	}
 
 	// Buffers we can stash options in
-	b := [][]byte{
-		// Variable length options field (starting at byte 240)
-		make([]byte, 0, maxlen-240),
-		// Fixed length "file" field (from byte 108 to byte 236)
-		make([]byte, 0, 236-108),
-		// Fixed length "sname" field (from byte 44 to byte 108)
-		make([]byte, 0, 108-44),
+	var b [3][]byte
+
+	// Variable length options field (starting at byte 240)
+	b[0] = make([]byte, 0, maxLen-240)
+
+	// Fixed length "file" field (from byte 108 to byte 236)
+	if opts == nil || !opts.skipFile {
+		b[1] = make([]byte, 0, 236-108)
+	}
+
+	// Fixed length "sname" field (from byte 44 to byte 108)
+	if opts == nil || !opts.skipSName {
+		b[2] = make([]byte, 0, 108-44)
 	}
 
 	// Write options to one of the buffers

@@ -190,7 +190,7 @@ func TestPacketToBytes(t *testing.T) {
 	p := NewPacket(BootRequest)
 
 	createOptionMaps := func() (OptionMap, OptionMap, bool) {
-		b, err := PacketToBytes(p)
+		b, err := PacketToBytes(p, nil)
 		if !assert.Nil(t, err) {
 			return nil, nil, false
 		}

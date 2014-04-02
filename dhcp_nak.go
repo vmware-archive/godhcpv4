@@ -1,5 +1,7 @@
 package dhcpv4
 
+import "encoding/binary"
+
 // DHCPNak is a server to client packet indicating client's notion of network
 // address is incorrect (e.g., client has moved to new subnet) or client's
 // lease as expired.
@@ -42,8 +44,17 @@ func (d DHCPNak) Validate() error {
 }
 
 func (d DHCPNak) ToBytes() ([]byte, error) {
-	// TODO(PN): Must not use file/sname fields
-	return PacketToBytes(d.Packet)
+	opts := packetToBytesOptions{
+		skipFile:  true,
+		skipSName: true,
+	}
+
+	// Copy MaxMsgSize if set in the request
+	if v, ok := d.Request().GetOption(OptionDHCPMaxMsgSize); ok {
+		opts.maxLen = binary.BigEndian.Uint16(v)
+	}
+
+	return PacketToBytes(d.Packet, &opts)
 }
 
 func (d DHCPNak) Request() Packet {

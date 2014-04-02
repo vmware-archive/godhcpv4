@@ -1,5 +1,7 @@
 package dhcpv4
 
+import "encoding/binary"
+
 // DHCPOffer is a server to client packet in response to DHCPDISCOVER with
 // offer of configuration parameters.
 type DHCPOffer struct {
@@ -37,7 +39,14 @@ func (d DHCPOffer) Validate() error {
 }
 
 func (d DHCPOffer) ToBytes() ([]byte, error) {
-	return PacketToBytes(d.Packet)
+	opts := packetToBytesOptions{}
+
+	// Copy MaxMsgSize if set in the request
+	if v, ok := d.Request().GetOption(OptionDHCPMaxMsgSize); ok {
+		opts.maxLen = binary.BigEndian.Uint16(v)
+	}
+
+	return PacketToBytes(d.Packet, &opts)
 }
 
 func (d DHCPOffer) Request() Packet {

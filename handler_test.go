@@ -182,14 +182,14 @@ func TestServeFiltersNonRequests(t *testing.T) {
 	bufs[0] = []byte("this is a garbage packet")
 
 	p1 := NewPacket(OpCode(2)) // BootReply
-	if buf, err = PacketToBytes(p1); err != nil {
+	if buf, err = PacketToBytes(p1, nil); err != nil {
 		panic(err)
 	}
 
 	bufs[1] = buf
 
 	p2 := NewPacket(OpCode(2)) // Undefined opcode
-	if buf, err = PacketToBytes(p2); err != nil {
+	if buf, err = PacketToBytes(p2, nil); err != nil {
 		panic(err)
 	}
 
@@ -227,7 +227,7 @@ func TestServeRequestDispatch(t *testing.T) {
 		p := NewPacket(BootRequest)
 		p.SetMessageType(testCase.t)
 
-		if buf, err = PacketToBytes(p); err != nil {
+		if buf, err = PacketToBytes(p, nil); err != nil {
 			panic(err)
 		}
 
