@@ -3,6 +3,7 @@ package dhcpv4
 import (
 	"encoding/binary"
 	"net"
+	"time"
 )
 
 // MessageType is the type for the various DHCP messages defined in RFC2132.
@@ -111,6 +112,20 @@ func (om OptionMap) GetIP(o Option) (net.IP, bool) {
 // GetIP sets the IP value of an option.
 func (om OptionMap) SetIP(o Option, v net.IP) {
 	om.SetOption(o, []byte(v.To4()))
+}
+
+// GetDuration gets the duration value of an option, stored as a 32 bit unsigned integer.
+func (om OptionMap) GetDuration(o Option) (time.Duration, bool) {
+	if v, ok := om.GetUint32(o); ok {
+		return time.Duration(v) * time.Second, true
+	}
+
+	return time.Duration(0), false
+}
+
+// SetDuration sets the duration value of an option, stored as a 32 bit unsigned integer.
+func (om OptionMap) SetDuration(o Option, v time.Duration) {
+	om.SetUint32(o, uint32(v.Seconds()))
 }
 
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
