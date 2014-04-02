@@ -1,6 +1,11 @@
 package dhcpv4
 
-import "net"
+import (
+	"fmt"
+	"net"
+
+	"code.google.com/p/go.net/ipv4"
+)
 
 // PacketReader defines the ReadFrom function as defined in net.PacketConn.
 type PacketReader interface {
@@ -71,9 +76,7 @@ type Handler interface {
 	ServeDHCP(req Request)
 }
 
-// Serve reads packets off the network and passes them to the specified
-// handler. It is up to the handler to packets to per-client serve loops, if
-// that is what you want.
+// Serve reads packets off the network and calls the specified handler.
 func Serve(pc PacketConn, h Handler) error {
 	buf := make([]byte, 65536)
 
@@ -117,4 +120,86 @@ func Serve(pc PacketConn, h Handler) error {
 			h.ServeDHCP(req)
 		}
 	}
+}
+
+// packetConnFilter wraps net.PacketConn and only reads and writes packet from
+// and to the specified network interface.
+type packetConnFilter struct {
+	net.PacketConn
+
+	ipv4pc *ipv4.PacketConn
+	ipv4cm *ipv4.ControlMessage
+}
+
+// ReadFrom reads a packet from the connection copying the payload into b. It
+// inherits its semantics from ipv4.PacketConn and subsequently net.PacketConn,
+// but filters out packets that arrived on an interface other than the one
+// specified in the packetConnFilter structure.
+func (p *packetConnFilter) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
+	for {
+		n, cm, src, err := p.ipv4pc.ReadFrom(b)
+		if err != nil {
+			return n, src, err
+		}
+
+		// Read another packet if it didn't arrive on the right interface
+		if cm.IfIndex != p.ipv4cm.IfIndex {
+			continue
+		}
+
+		return n, src, err
+	}
+}
+
+// WriteTo writes a packet with payload b to addr. It inherits its semantics
+// from ipv4.PacketConn and subsequently net.PacketConn, but explicitly sends
+// the packet over the interface specified in the packetConnFilter structure.
+func (p *packetConnFilter) WriteTo(b []byte, addr net.Addr) (n int, err error) {
+	return p.ipv4pc.WriteTo(b, p.ipv4cm, addr)
+}
+
+// PacketConnFilter wraps a net.PacketConn and only reads packets from and
+// writes packets to the network interface associated with the specified IP
+// address. It may return an error if it cannot initialize the underlying
+// socket correctly. It panics if it cannot find the network interface
+// associated with the specified IP.
+func PacketConnFilter(pc net.PacketConn, ip net.IP) (net.PacketConn, error) {
+	ipv4pc := ipv4.NewPacketConn(pc)
+	if err := ipv4pc.SetControlMessage(ipv4.FlagInterface, true); err != nil {
+		return nil, err
+	}
+
+	p := packetConnFilter{
+		PacketConn: pc,
+
+		ipv4pc: ipv4pc,
+		ipv4cm: &ipv4.ControlMessage{
+			IfIndex: LookupInterfaceIndexForIP(ip),
+		},
+	}
+
+	return &p, nil
+}
+
+// LookupInterfaceIndexForIP finds the system-wide network interface index that
+// is associated with the specified IP address.
+func LookupInterfaceIndexForIP(ip net.IP) int {
+	is, err := net.Interfaces()
+	if err != nil {
+		panic(err)
+	}
+	for _, i := range is {
+		as, err := i.Addrs()
+		if err != nil {
+			panic(err)
+		}
+		for _, a := range as {
+			if a.(*net.IPNet).IP.String() == ip.String() {
+				return i.Index
+			}
+		}
+	}
+
+	// Not really a recoverable error...
+	panic(fmt.Sprintf("dhcpv4: can't find network interface for: %s", ip))
 }
