@@ -1,5 +1,10 @@
 package dhcpv4
 
+import (
+	"encoding/binary"
+	"net"
+)
+
 // MessageType is the type for the various DHCP messages defined in RFC2132.
 type MessageType byte
 
@@ -44,6 +49,68 @@ func (om OptionMap) GetMessageType() MessageType {
 // SetMessageType sets the message type in the DHCPMsgType option field.
 func (om OptionMap) SetMessageType(m MessageType) {
 	om.SetOption(OptionDHCPMsgType, []byte{byte(m)})
+}
+
+// GetUint8 gets the 8 bit unsigned integer value of an option.
+func (om OptionMap) GetUint8(o Option) (uint8, bool) {
+	if v, ok := om.GetOption(o); ok && len(v) == 1 {
+		return uint8(v[0]), true
+	}
+
+	return uint8(0), false
+}
+
+// SetUint8 sets the 8 bit unsigned integer value of an option.
+func (om OptionMap) SetUint8(o Option, v uint8) {
+	b := make([]byte, 1)
+	b[0] = uint8(v)
+	om.SetOption(o, b)
+}
+
+// GetUint16 gets the 16 bit unsigned integer value of an option.
+func (om OptionMap) GetUint16(o Option) (uint16, bool) {
+	if v, ok := om.GetOption(o); ok && len(v) == 2 {
+		return binary.BigEndian.Uint16(v), true
+	}
+
+	return uint16(0), false
+}
+
+// SetUint16 sets the 16 bit unsigned integer value of an option.
+func (om OptionMap) SetUint16(o Option, v uint16) {
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, v)
+	om.SetOption(o, b)
+}
+
+// GetUint32 gets the 32 bit unsigned integer value of an option.
+func (om OptionMap) GetUint32(o Option) (uint32, bool) {
+	if v, ok := om.GetOption(o); ok && len(v) == 4 {
+		return binary.BigEndian.Uint32(v), true
+	}
+
+	return uint32(0), false
+}
+
+// SetUint32 sets the 32 bit unsigned integer value of an option.
+func (om OptionMap) SetUint32(o Option, v uint32) {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, v)
+	om.SetOption(o, b)
+}
+
+// GetIP gets the IP value of an option.
+func (om OptionMap) GetIP(o Option) (net.IP, bool) {
+	if v, ok := om.GetOption(o); ok && len(v) == 4 {
+		return net.IPv4(v[0], v[1], v[2], v[3]), true
+	}
+
+	return nil, false
+}
+
+// GetIP sets the IP value of an option.
+func (om OptionMap) SetIP(o Option, v net.IP) {
+	om.SetOption(o, []byte(v.To4()))
 }
 
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
