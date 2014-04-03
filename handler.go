@@ -135,7 +135,7 @@ type packetConnFilter struct {
 // inherits its semantics from ipv4.PacketConn and subsequently net.PacketConn,
 // but filters out packets that arrived on an interface other than the one
 // specified in the packetConnFilter structure.
-func (p *packetConnFilter) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
+func (p *packetConnFilter) ReadFrom(b []byte) (int, net.Addr, error) {
 	for {
 		n, cm, src, err := p.ipv4pc.ReadFrom(b)
 		if err != nil {
@@ -154,7 +154,7 @@ func (p *packetConnFilter) ReadFrom(b []byte) (n int, addr net.Addr, err error) 
 // WriteTo writes a packet with payload b to addr. It inherits its semantics
 // from ipv4.PacketConn and subsequently net.PacketConn, but explicitly sends
 // the packet over the interface specified in the packetConnFilter structure.
-func (p *packetConnFilter) WriteTo(b []byte, addr net.Addr) (n int, err error) {
+func (p *packetConnFilter) WriteTo(b []byte, addr net.Addr) (int, error) {
 	return p.ipv4pc.WriteTo(b, p.ipv4cm, addr)
 }
 

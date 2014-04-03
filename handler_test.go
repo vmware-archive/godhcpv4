@@ -54,6 +54,9 @@ func (pc *testPacketConn) ReadSuccess(b []byte) {
 
 type testReply struct {
 	mock.Mock
+
+	// Embed OptionMap so this struct implements the Reply interface.
+	OptionMap
 }
 
 func (r *testReply) Validate() error {

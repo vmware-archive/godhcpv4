@@ -20,6 +20,28 @@ const (
 	MessageTypeDHCPInform   = MessageType(8)
 )
 
+// OptionGetter defines a bag of functions that can be used to get options.
+type OptionGetter interface {
+	GetOption(Option) ([]byte, bool)
+	GetMessageType() MessageType
+	GetUint8(Option) (uint8, bool)
+	GetUint16(Option) (uint16, bool)
+	GetUint32(Option) (uint32, bool)
+	GetIP(Option) (net.IP, bool)
+	GetDuration(Option) (time.Duration, bool)
+}
+
+// OptionSetter defines a bag of functions that can be used to set options.
+type OptionSetter interface {
+	SetOption(Option, []byte)
+	SetMessageType(MessageType)
+	SetUint8(Option, uint8)
+	SetUint16(Option, uint16)
+	SetUint32(Option, uint32)
+	SetIP(Option, net.IP)
+	SetDuration(Option, time.Duration)
+}
+
 // Option is the type for DHCP option tags.
 type Option byte
 
