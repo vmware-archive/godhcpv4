@@ -3,6 +3,8 @@ package dhcpv4
 import (
 	"encoding/binary"
 	"net"
+	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -215,6 +217,98 @@ func (om OptionMap) Parse(x []byte, opts *optionMapParseOptions) error {
 	}
 
 	return nil
+}
+
+func (om OptionMap) decodeValue(code int, dv reflect.Value) {
+	var rv reflect.Value
+
+	dt := dv.Type()
+	n := 0
+
+	// Indirect the pointer type as far as needed
+	for dt.Kind() == reflect.Ptr {
+		dt = dt.Elem()
+		n++
+	}
+
+	switch dt.Kind() {
+	case reflect.Uint8:
+		if v, ok := om.GetUint8(Option(code)); ok {
+			rv = reflect.ValueOf(v)
+		}
+	case reflect.Uint16:
+		if v, ok := om.GetUint16(Option(code)); ok {
+			rv = reflect.ValueOf(v)
+		}
+	case reflect.Uint32:
+		if v, ok := om.GetUint32(Option(code)); ok {
+			rv = reflect.ValueOf(v)
+		}
+	case reflect.String:
+		if v, ok := om.GetString(Option(code)); ok {
+			rv = reflect.ValueOf(v)
+		}
+	case reflect.Bool:
+		if v, ok := om.GetUint8(Option(code)); ok {
+			rv = reflect.ValueOf(v > 0)
+		}
+	}
+
+	// Abort if the result value wasn't set
+	if !rv.IsValid() {
+		return
+	}
+
+	// Get the value to the pointer depth to the level we can set it at
+	for ; n > 0; n-- {
+		if rv.CanAddr() {
+			rv = rv.Addr()
+		} else {
+			// Make addressable
+			x := reflect.New(rv.Type())
+			x.Elem().Set(rv)
+			rv = x
+		}
+	}
+
+	dv.Set(rv)
+}
+
+func (om OptionMap) Decode(dst interface{}) {
+	sv := reflect.ValueOf(dst)
+	st := sv.Type()
+
+	// Expect a pointer
+	if st.Kind() != reflect.Ptr {
+		panic("dhcpv4: expected a *struct")
+	}
+
+	sv = sv.Elem()
+	st = sv.Type()
+
+	// Expect a struct
+	if st.Kind() != reflect.Struct {
+		panic("dhcpv4: expected a *struct")
+	}
+
+	// Walk the fields of this struct
+	n := sv.NumField()
+	for i := 0; i < n; i++ {
+		fv := sv.Field(i)
+		ft := st.Field(i)
+
+		s := ft.Tag.Get("code")
+		if s == "" {
+			continue
+		}
+
+		code, err := strconv.Atoi(s)
+		if err != nil {
+			continue
+		}
+
+		om.decodeValue(code, fv)
+	}
 }
 
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions

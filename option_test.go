@@ -163,3 +163,57 @@ func TestOptionMapDurationTruncateSubSecond(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, 100*time.Second, b)
 }
+
+func TestOptionMapDecodeWithoutPtr(t *testing.T) {
+	om := make(OptionMap)
+
+	var s struct {
+		U8  uint8  `code:"1"`
+		U16 uint16 `code:"2"`
+		U32 uint32 `code:"3"`
+		S   string `code:"4"`
+	}
+
+	om.SetUint8(Option(1), 37)
+	om.SetUint16(Option(2), 37000)
+	om.SetUint32(Option(3), 37000000)
+	om.SetString(Option(4), "thirtyseven")
+
+	om.Decode(&s)
+
+	assert.Equal(t, uint8(37), s.U8)
+	assert.Equal(t, uint16(37000), s.U16)
+	assert.Equal(t, uint32(37000000), s.U32)
+	assert.Equal(t, "thirtyseven", s.S)
+}
+
+func TestOptionMapDecodeWithPtr(t *testing.T) {
+	om := make(OptionMap)
+
+	var s struct {
+		U8  *uint8  `code:"1"`
+		U16 *uint16 `code:"2"`
+		U32 *uint32 `code:"3"`
+		S   *string `code:"4"`
+	}
+
+	om.SetUint8(Option(1), 37)
+	om.SetUint16(Option(2), 37000)
+	om.SetUint32(Option(3), 37000000)
+	om.SetString(Option(4), "thirtyseven")
+
+	om.Decode(&s)
+
+	if assert.NotNil(t, s.U8) {
+		assert.Equal(t, uint8(37), *s.U8)
+	}
+	if assert.NotNil(t, s.U16) {
+		assert.Equal(t, uint16(37000), *s.U16)
+	}
+	if assert.NotNil(t, s.U32) {
+		assert.Equal(t, uint32(37000000), *s.U32)
+	}
+	if assert.NotNil(t, s.S) {
+		assert.Equal(t, "thirtyseven", *s.S)
+	}
+}
