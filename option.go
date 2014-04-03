@@ -166,6 +166,57 @@ func (om OptionMap) SetDuration(o Option, v time.Duration) {
 	om.SetUint32(o, uint32(v.Seconds()))
 }
 
+type optionMapParseOptions struct {
+	ignoreMissingEndTag bool
+}
+
+// Parse reads options from the []byte into the option map.
+func (om OptionMap) Parse(x []byte, opts *optionMapParseOptions) error {
+	for {
+		if len(x) == 0 {
+			if opts != nil && opts.ignoreMissingEndTag {
+				return nil
+			}
+
+			return ErrShortPacket
+		}
+
+		tag := Option(x[0])
+		x = x[1:]
+		if tag == OptionEnd {
+			break
+		}
+
+		// Padding tag
+		if tag == OptionPad {
+			continue
+		}
+
+		// Read length octet
+		if len(x) == 0 {
+			return ErrShortPacket
+		}
+
+		length := int(x[0])
+		x = x[1:]
+		if len(x) < length {
+			return ErrShortPacket
+		}
+
+		_, ok := om[tag]
+		if ok {
+			// We've got a bad client here; duplicate options are not allowed.
+			// Let it slide instead of throwing a fit, for the sake of robustness.
+		}
+
+		// Capture option and move to the next one
+		om[tag] = x[0:length]
+		x = x[length:]
+	}
+
+	return nil
+}
+
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
 const (
 	// RFC2132 Section 3: RFC 1497 Vendor Extensions

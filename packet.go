@@ -115,73 +115,27 @@ func (p RawPacket) SetGIAddr(ip net.IP) {
 	copy(p.GIAddr(), ip)
 }
 
-func parseOptionBuffer(x []byte, opts OptionMap) error {
-	for {
-		if len(x) == 0 {
-			return ErrShortPacket
-		}
-
-		tag := Option(x[0])
-		x = x[1:]
-		if tag == OptionEnd {
-			break
-		}
-
-		// Padding tag
-		if tag == OptionPad {
-			continue
-		}
-
-		// Read length octet
-		if len(x) == 0 {
-			return ErrShortPacket
-		}
-
-		length := int(x[0])
-		x = x[1:]
-		if len(x) < length {
-			return ErrShortPacket
-		}
-
-		_, ok := opts[tag]
-		if ok {
-			// We've got a bad client here; duplicate options are not allowed.
-			// Let it slide instead of throwing a fit, for the sake of robustness.
-		}
-
-		// Capture option and move to the next one
-		opts[tag] = x[0:length]
-		x = x[length:]
-	}
-
-	return nil
-}
-
 func (p RawPacket) ParseOptions() (OptionMap, error) {
-	var b []byte
 	var err error
 
 	// Facilitate up to 255 option tags
 	opts := make(OptionMap, 255)
 
 	// Parse initial set of options
-	b = p.Options()
-	if err = parseOptionBuffer(b, opts); err != nil {
+	if err = opts.Parse(p.Options(), nil); err != nil {
 		return nil, err
 	}
 
 	// Parse options from `file` field if necessary
 	if x := opts[OptionOverload]; len(x) > 0 && x[0]&0x1 != 0 {
-		b = p.File()
-		if err = parseOptionBuffer(b, opts); err != nil {
+		if err = opts.Parse(p.File(), nil); err != nil {
 			return nil, err
 		}
 	}
 
 	// Parse options from `sname` field if necessary
 	if x := opts[OptionOverload]; len(x) > 0 && x[0]&0x2 != 0 {
-		b = p.SName()
-		if err = parseOptionBuffer(b, opts); err != nil {
+		if err = opts.Parse(p.SName(), nil); err != nil {
 			return nil, err
 		}
 	}
