@@ -27,6 +27,7 @@ type OptionGetter interface {
 	GetUint8(Option) (uint8, bool)
 	GetUint16(Option) (uint16, bool)
 	GetUint32(Option) (uint32, bool)
+	GetString(Option) (string, bool)
 	GetIP(Option) (net.IP, bool)
 	GetDuration(Option) (time.Duration, bool)
 }
@@ -38,6 +39,7 @@ type OptionSetter interface {
 	SetUint8(Option, uint8)
 	SetUint16(Option, uint16)
 	SetUint32(Option, uint32)
+	SetString(Option, string)
 	SetIP(Option, net.IP)
 	SetDuration(Option, time.Duration)
 }
@@ -120,6 +122,20 @@ func (om OptionMap) SetUint32(o Option, v uint32) {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, v)
 	om.SetOption(o, b)
+}
+
+// GetString gets the string value of an option.
+func (om OptionMap) GetString(o Option) (string, bool) {
+	if v, ok := om.GetOption(o); ok {
+		return string(v), true
+	}
+
+	return "", false
+}
+
+// SetString sets the string value of an option.
+func (om OptionMap) SetString(o Option, v string) {
+	om.SetOption(o, []byte(v))
 }
 
 // GetIP gets the IP value of an option.

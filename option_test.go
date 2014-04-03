@@ -95,6 +95,24 @@ func TestOptionMapUint32(t *testing.T) {
 	assert.Equal(t, a, b)
 }
 
+func TestOptionMapString(t *testing.T) {
+	var o = Option(1)
+	var ok bool
+	var a, b string
+
+	om := make(OptionMap)
+
+	_, ok = om.GetString(o)
+	assert.False(t, ok)
+
+	a = "hello world!"
+	om.SetString(o, a)
+
+	b, ok = om.GetString(o)
+	assert.True(t, ok)
+	assert.Equal(t, a, b)
+}
+
 func TestOptionMapIP(t *testing.T) {
 	var o = Option(1)
 	var ok bool
