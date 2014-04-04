@@ -169,15 +169,15 @@ func (om OptionMap) SetDuration(o Option, v time.Duration) {
 	om.SetUint32(o, uint32(v.Seconds()))
 }
 
-type optionMapParseOptions struct {
-	ignoreMissingEndTag bool
+type OptionMapParseOptions struct {
+	IgnoreMissingEndTag bool
 }
 
 // Parse reads options from the []byte into the option map.
-func (om OptionMap) Parse(x []byte, opts *optionMapParseOptions) error {
+func (om OptionMap) Parse(x []byte, opts *OptionMapParseOptions) error {
 	for {
 		if len(x) == 0 {
-			if opts != nil && opts.ignoreMissingEndTag {
+			if opts != nil && opts.IgnoreMissingEndTag {
 				return nil
 			}
 
