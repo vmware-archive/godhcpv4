@@ -1,6 +1,8 @@
 package dhcpv4
 
 import (
+	"bytes"
+	"encoding/binary"
 	"net"
 	"testing"
 	"time"
@@ -164,56 +166,88 @@ func TestOptionMapDurationTruncateSubSecond(t *testing.T) {
 	assert.Equal(t, 100*time.Second, b)
 }
 
+// Keep this function here until we have a generic option getter/setter for any
+// type that the option map supports.
+func encodeInteger(src interface{}) []byte {
+	var b bytes.Buffer
+	binary.Write(&b, binary.BigEndian, src)
+	return b.Bytes()
+}
+
 func TestOptionMapDecodeWithoutPtr(t *testing.T) {
 	om := make(OptionMap)
 
 	var s struct {
-		U8  uint8  `code:"1"`
-		U16 uint16 `code:"2"`
-		U32 uint32 `code:"3"`
-		S   string `code:"4"`
+		U8  uint8  `code:"10"`
+		U16 uint16 `code:"11"`
+		U32 uint32 `code:"12"`
+		I8  int8   `code:"20"`
+		I16 int16  `code:"21"`
+		I32 int32  `code:"22"`
+		S   string `code:"30"`
 	}
 
-	om.SetUint8(Option(1), 37)
-	om.SetUint16(Option(2), 37000)
-	om.SetUint32(Option(3), 37000000)
-	om.SetString(Option(4), "thirtyseven")
+	om.SetOption(Option(10), encodeInteger(uint8(32)))
+	om.SetOption(Option(11), encodeInteger(uint16(32000)))
+	om.SetOption(Option(12), encodeInteger(uint32(32000000)))
+	om.SetOption(Option(20), encodeInteger(int8(-32)))
+	om.SetOption(Option(21), encodeInteger(int16(-32000)))
+	om.SetOption(Option(22), encodeInteger(int32(-32000000)))
+	om.SetString(Option(30), "thirtytwo")
 
 	om.Decode(&s)
 
-	assert.Equal(t, uint8(37), s.U8)
-	assert.Equal(t, uint16(37000), s.U16)
-	assert.Equal(t, uint32(37000000), s.U32)
-	assert.Equal(t, "thirtyseven", s.S)
+	assert.Equal(t, uint8(32), s.U8)
+	assert.Equal(t, uint16(32000), s.U16)
+	assert.Equal(t, uint32(32000000), s.U32)
+	assert.Equal(t, int8(-32), s.I8)
+	assert.Equal(t, int16(-32000), s.I16)
+	assert.Equal(t, int32(-32000000), s.I32)
+	assert.Equal(t, "thirtytwo", s.S)
 }
 
 func TestOptionMapDecodeWithPtr(t *testing.T) {
 	om := make(OptionMap)
 
 	var s struct {
-		U8  *uint8  `code:"1"`
-		U16 *uint16 `code:"2"`
-		U32 *uint32 `code:"3"`
-		S   *string `code:"4"`
+		U8  *uint8  `code:"10"`
+		U16 *uint16 `code:"11"`
+		U32 *uint32 `code:"12"`
+		I8  *int8   `code:"20"`
+		I16 *int16  `code:"21"`
+		I32 *int32  `code:"22"`
+		S   *string `code:"30"`
 	}
 
-	om.SetUint8(Option(1), 37)
-	om.SetUint16(Option(2), 37000)
-	om.SetUint32(Option(3), 37000000)
-	om.SetString(Option(4), "thirtyseven")
+	om.SetOption(Option(10), encodeInteger(uint8(32)))
+	om.SetOption(Option(11), encodeInteger(uint16(32000)))
+	om.SetOption(Option(12), encodeInteger(uint32(32000000)))
+	om.SetOption(Option(20), encodeInteger(int8(-32)))
+	om.SetOption(Option(21), encodeInteger(int16(-32000)))
+	om.SetOption(Option(22), encodeInteger(int32(-32000000)))
+	om.SetString(Option(30), "thirtytwo")
 
 	om.Decode(&s)
 
 	if assert.NotNil(t, s.U8) {
-		assert.Equal(t, uint8(37), *s.U8)
+		assert.Equal(t, uint8(32), *s.U8)
 	}
 	if assert.NotNil(t, s.U16) {
-		assert.Equal(t, uint16(37000), *s.U16)
+		assert.Equal(t, uint16(32000), *s.U16)
 	}
 	if assert.NotNil(t, s.U32) {
-		assert.Equal(t, uint32(37000000), *s.U32)
+		assert.Equal(t, uint32(32000000), *s.U32)
+	}
+	if assert.NotNil(t, s.I8) {
+		assert.Equal(t, int8(-32), *s.I8)
+	}
+	if assert.NotNil(t, s.I16) {
+		assert.Equal(t, int16(-32000), *s.I16)
+	}
+	if assert.NotNil(t, s.I32) {
+		assert.Equal(t, int32(-32000000), *s.I32)
 	}
 	if assert.NotNil(t, s.S) {
-		assert.Equal(t, "thirtyseven", *s.S)
+		assert.Equal(t, "thirtytwo", *s.S)
 	}
 }

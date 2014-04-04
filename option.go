@@ -1,6 +1,7 @@
 package dhcpv4
 
 import (
+	"bytes"
 	"encoding/binary"
 	"net"
 	"reflect"
@@ -232,17 +233,14 @@ func (om OptionMap) decodeValue(code int, dv reflect.Value) {
 	}
 
 	switch dt.Kind() {
-	case reflect.Uint8:
-		if v, ok := om.GetUint8(Option(code)); ok {
-			rv = reflect.ValueOf(v)
-		}
-	case reflect.Uint16:
-		if v, ok := om.GetUint16(Option(code)); ok {
-			rv = reflect.ValueOf(v)
-		}
-	case reflect.Uint32:
-		if v, ok := om.GetUint32(Option(code)); ok {
-			rv = reflect.ValueOf(v)
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Int8, reflect.Int16, reflect.Int32:
+		if v, ok := om.GetOption(Option(code)); ok && len(v) > 0 {
+			rv = reflect.New(dt)
+			binary.Read(bytes.NewReader(v), binary.BigEndian, rv.Interface())
+
+			// Dereference pointer so that the underlying value can be assigned to
+			// the destination reflect.Value if it is not a pointer.
+			rv = rv.Elem()
 		}
 	case reflect.String:
 		if v, ok := om.GetString(Option(code)); ok {
