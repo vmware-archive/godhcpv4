@@ -24,7 +24,7 @@ func (p RawPacket) Op() []byte     { return p[0:1] }
 func (p RawPacket) HType() []byte  { return p[1:2] }
 func (p RawPacket) HLen() []byte   { return p[2:3] }
 func (p RawPacket) Hops() []byte   { return p[3:4] }
-func (p RawPacket) XId() []byte    { return p[4:8] }
+func (p RawPacket) XID() []byte    { return p[4:8] }
 func (p RawPacket) Secs() []byte   { return p[8:10] }
 func (p RawPacket) Flags() []byte  { return p[10:12] }
 func (p RawPacket) CIAddr() []byte { return p[12:16] }
@@ -170,7 +170,7 @@ func NewReply(req Packet) Packet {
 	rep.HLen()[0] = 6  // MAC-48 is 6 octets
 
 	// Copy transaction identifier
-	copy(rep.XId(), req.XId())
+	copy(rep.XID(), req.XID())
 
 	// Copy fields from request (per RFC2131, section 4.3, table 3)
 	copy(rep.Flags(), req.Flags())
