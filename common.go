@@ -2,6 +2,7 @@ package dhcpv4
 
 // Request
 type Request interface {
+	PacketGetter
 	OptionGetter
 }
 
@@ -11,6 +12,7 @@ type Reply interface {
 	ToBytes() ([]byte, error)
 	Request() Packet
 
+	PacketSetter
 	OptionSetter
 }
 

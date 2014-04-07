@@ -85,6 +85,11 @@ func (r *testReply) Request() Packet {
 	return args.Get(0).(Packet)
 }
 
+func (r *testReply) SetCIAddr(ip net.IP) {}
+func (r *testReply) SetYIAddr(ip net.IP) {}
+func (r *testReply) SetSIAddr(ip net.IP) {}
+func (r *testReply) SetGIAddr(ip net.IP) {}
+
 func TestReplyWriterReturnsValidationError(t *testing.T) {
 	validationError := errors.New("some validation error")
 

@@ -18,6 +18,25 @@ const (
 	BootReply   = OpCode(2)
 )
 
+type PacketGetter interface {
+	GetHType() uint8
+	GetHLen() uint8
+	GetCHAddr() []byte
+	GetXID() [4]byte
+
+	GetCIAddr() net.IP
+	GetYIAddr() net.IP
+	GetSIAddr() net.IP
+	GetGIAddr() net.IP
+}
+
+type PacketSetter interface {
+	SetCIAddr(ip net.IP)
+	SetYIAddr(ip net.IP)
+	SetSIAddr(ip net.IP)
+	SetGIAddr(ip net.IP)
+}
+
 type RawPacket []byte
 
 func (p RawPacket) Op() []byte     { return p[0:1] }
@@ -60,7 +79,37 @@ func (p RawPacket) Options() []byte {
 	return p[240:]
 }
 
-// GetCIAddr sets the current IP address of the client.
+// GetHType gets the hardware address type.
+func (p RawPacket) GetHType() uint8 {
+	return uint8(p.HType()[0])
+}
+
+// GetHLen gets the hardware address length.
+func (p RawPacket) GetHLen() uint8 {
+	return uint8(p.HLen()[0])
+}
+
+// GetCHAddr gets the client's hardware address.
+func (p RawPacket) GetCHAddr() []byte {
+	var out [16]byte
+
+	hlen := p.GetHLen()
+	if hlen > 16 {
+		hlen = 16
+	}
+
+	copy(out[:], p.CHAddr()[0:hlen])
+	return out[0:hlen]
+}
+
+// GetXID gets the packet's transaction ID.
+func (p RawPacket) GetXID() [4]byte {
+	var out [4]byte
+	copy(out[:], p.XID())
+	return out
+}
+
+// GetCIAddr gets the current IP address of the client.
 func (p RawPacket) GetCIAddr() net.IP {
 	return net.IP(p.CIAddr())
 }
