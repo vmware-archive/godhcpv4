@@ -309,6 +309,81 @@ func (om OptionMap) Decode(dst interface{}) {
 	}
 }
 
+func encodeInt(v reflect.Value) []byte {
+	var buffer bytes.Buffer
+
+	err := binary.Write(&buffer, binary.BigEndian, v.Interface())
+	if err != nil {
+		panic(err)
+	}
+
+	return buffer.Bytes()
+}
+
+func (om OptionMap) encodeValue(code int, v reflect.Value) {
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			// Bail if there is nothing to see here...
+			return
+		}
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		if v.Uint() != 0 {
+			om.SetOption(Option(code), encodeInt(v))
+		}
+	case reflect.Int8, reflect.Int16, reflect.Int32:
+		if v.Int() != 0 {
+			om.SetOption(Option(code), encodeInt(v))
+		}
+	case reflect.String:
+		if v.Len() > 0 {
+			om.SetOption(Option(code), []byte(v.Interface().(string)))
+		}
+	case reflect.Bool:
+		if v.Bool() {
+			om.SetOption(Option(code), []byte{0x1})
+		}
+	}
+}
+
+func (om OptionMap) Encode(dst interface{}) {
+	sv := reflect.ValueOf(dst)
+	st := sv.Type()
+
+	// Dereference the pointer as deep as possible
+	for sv.Kind() == reflect.Ptr {
+		sv = sv.Elem()
+		st = sv.Type()
+	}
+
+	// Expect a struct
+	if st.Kind() != reflect.Struct {
+		panic("dhcpv4: expected a *struct")
+	}
+
+	// Walk the fields of this struct
+	n := sv.NumField()
+	for i := 0; i < n; i++ {
+		fv := sv.Field(i)
+		ft := st.Field(i)
+
+		s := ft.Tag.Get("code")
+		if s == "" {
+			continue
+		}
+
+		code, err := strconv.Atoi(s)
+		if err != nil {
+			continue
+		}
+
+		om.encodeValue(code, fv)
+	}
+}
+
 // From RFC2132: DHCP Options and BOOTP Vendor Extensions
 const (
 	// RFC2132 Section 3: RFC 1497 Vendor Extensions

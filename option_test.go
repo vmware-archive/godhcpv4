@@ -174,7 +174,7 @@ func encodeInteger(src interface{}) []byte {
 	return b.Bytes()
 }
 
-func TestOptionMapDecodeWithoutPtr(t *testing.T) {
+func TestOptionMapDecodeEncodeWithoutPtr(t *testing.T) {
 	om := make(OptionMap)
 
 	var s struct {
@@ -204,9 +204,13 @@ func TestOptionMapDecodeWithoutPtr(t *testing.T) {
 	assert.Equal(t, int16(-32000), s.I16)
 	assert.Equal(t, int32(-32000000), s.I32)
 	assert.Equal(t, "thirtytwo", s.S)
+
+	om_ := make(OptionMap)
+	om_.Encode(&s)
+	assert.Equal(t, om, om_)
 }
 
-func TestOptionMapDecodeWithPtr(t *testing.T) {
+func TestOptionMapDecodeEncodeWithPtr(t *testing.T) {
 	om := make(OptionMap)
 
 	var s struct {
@@ -250,4 +254,8 @@ func TestOptionMapDecodeWithPtr(t *testing.T) {
 	if assert.NotNil(t, s.S) {
 		assert.Equal(t, "thirtytwo", *s.S)
 	}
+
+	om_ := make(OptionMap)
+	om_.Encode(&s)
+	assert.Equal(t, om, om_)
 }
