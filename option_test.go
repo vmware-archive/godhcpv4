@@ -205,9 +205,9 @@ func TestOptionMapDecodeEncodeWithoutPtr(t *testing.T) {
 	assert.Equal(t, int32(-32000000), s.I32)
 	assert.Equal(t, "thirtytwo", s.S)
 
-	om_ := make(OptionMap)
-	om_.Encode(&s)
-	assert.Equal(t, om, om_)
+	omX := make(OptionMap)
+	omX.Encode(&s)
+	assert.Equal(t, om, omX)
 }
 
 func TestOptionMapDecodeEncodeWithPtr(t *testing.T) {
@@ -255,7 +255,7 @@ func TestOptionMapDecodeEncodeWithPtr(t *testing.T) {
 		assert.Equal(t, "thirtytwo", *s.S)
 	}
 
-	om_ := make(OptionMap)
-	om_.Encode(&s)
-	assert.Equal(t, om, om_)
+	omX := make(OptionMap)
+	omX.Encode(&s)
+	assert.Equal(t, om, omX)
 }

@@ -1,9 +1,6 @@
 package dhcpv4
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
 type Validation interface {
 	Validate(p Packet) error
@@ -34,12 +31,12 @@ func (v validateMust) Validate(p Packet) error {
 	if v.have {
 		// MUST HAVE
 		if !ok {
-			err = errors.New(fmt.Sprintf("dhcpv4: packet MUST have field %d", v.o))
+			err = fmt.Errorf("dhcpv4: packet MUST have field %d", v.o)
 		}
 	} else {
 		// MUST NOT HAVE
 		if ok {
-			err = errors.New(fmt.Sprintf("dhcpv4: packet MUST NOT have field %d", v.o))
+			err = fmt.Errorf("dhcpv4: packet MUST NOT have field %d", v.o)
 		}
 	}
 
@@ -61,10 +58,10 @@ type validateAllowedOptions struct {
 func (v validateAllowedOptions) Validate(p Packet) error {
 	var err error
 
-	for k, _ := range p.OptionMap {
+	for k := range p.OptionMap {
 		// If an option is not allowed, the packet MUST NOT have it.
 		if !v.allowed[k] {
-			err = errors.New(fmt.Sprintf("dhcpv4: packet MUST NOT have field %d", k))
+			err = fmt.Errorf("dhcpv4: packet MUST NOT have field %d", k)
 			break
 		}
 	}
