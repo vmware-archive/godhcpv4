@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -248,13 +247,6 @@ func TestServeRequestDispatch(t *testing.T) {
 
 		Serve(pc, h)
 
-		// TODO(PN): Replace the stuff below with
-		//
-		//   h.AssertCalled(t, "ServeDHCP", testCase.a)
-		//
-		// Also see: https://github.com/stretchr/testify/pull/47
-
-		assert.Equal(t, 1, len(h.Calls))
-		assert.Equal(t, string(testCase.a), reflect.TypeOf(h.Calls[0].Arguments[0]).Name())
+		h.AssertCalled(t, "ServeDHCP", testCase.a)
 	}
 }
