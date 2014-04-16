@@ -171,20 +171,20 @@ func (p RawPacket) ParseOptions() (OptionMap, error) {
 	opts := make(OptionMap, 255)
 
 	// Parse initial set of options
-	if err = opts.Parse(p.Options(), nil); err != nil {
+	if err = opts.Deserialize(p.Options(), nil); err != nil {
 		return nil, err
 	}
 
 	// Parse options from `file` field if necessary
 	if x := opts[OptionOverload]; len(x) > 0 && x[0]&0x1 != 0 {
-		if err = opts.Parse(p.File(), nil); err != nil {
+		if err = opts.Deserialize(p.File(), nil); err != nil {
 			return nil, err
 		}
 	}
 
 	// Parse options from `sname` field if necessary
 	if x := opts[OptionOverload]; len(x) > 0 && x[0]&0x2 != 0 {
-		if err = opts.Parse(p.SName(), nil); err != nil {
+		if err = opts.Deserialize(p.SName(), nil); err != nil {
 			return nil, err
 		}
 	}

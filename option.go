@@ -169,12 +169,12 @@ func (om OptionMap) SetDuration(o Option, v time.Duration) {
 	om.SetUint32(o, uint32(v.Seconds()))
 }
 
-type OptionMapParseOptions struct {
+type OptionMapDeserializeOptions struct {
 	IgnoreMissingEndTag bool
 }
 
-// Parse reads options from the []byte into the option map.
-func (om OptionMap) Parse(x []byte, opts *OptionMapParseOptions) error {
+// Deserialize reads options from the []byte into the option map.
+func (om OptionMap) Deserialize(x []byte, opts *OptionMapDeserializeOptions) error {
 	for {
 		if len(x) == 0 {
 			if opts != nil && opts.IgnoreMissingEndTag {
@@ -218,6 +218,35 @@ func (om OptionMap) Parse(x []byte, opts *OptionMapParseOptions) error {
 	}
 
 	return nil
+}
+
+// Serialize writes the contents of the option map to a byte slice.
+func (om OptionMap) Serialize() []byte {
+	b := bytes.Buffer{}
+
+	for k, v := range om {
+		if len(v) > 255 {
+			continue
+		}
+
+		if err := b.WriteByte(byte(k)); err != nil {
+			panic(err)
+		}
+
+		if err := b.WriteByte(byte(len(v))); err != nil {
+			panic(err)
+		}
+
+		if _, err := b.Write(v); err != nil {
+			panic(err)
+		}
+	}
+
+	if err := b.WriteByte(byte(OptionEnd)); err != nil {
+		panic(err)
+	}
+
+	return b.Bytes()
 }
 
 func (om OptionMap) decodeValue(code int, dv reflect.Value) {
