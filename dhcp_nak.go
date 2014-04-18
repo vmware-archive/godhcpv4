@@ -8,7 +8,17 @@ import "encoding/binary"
 type DHCPNak struct {
 	Packet
 
-	req Packet
+	req Request
+}
+
+func CreateDHCPNak(req Request) DHCPNak {
+	rep := DHCPNak{
+		Packet: NewReply(req),
+		req:    req,
+	}
+
+	rep.SetMessageType(MessageTypeDHCPNak)
+	return rep
 }
 
 // From RFC2131, table 3:
@@ -57,6 +67,6 @@ func (d DHCPNak) ToBytes() ([]byte, error) {
 	return PacketToBytes(d.Packet, &opts)
 }
 
-func (d DHCPNak) Request() Packet {
+func (d DHCPNak) Request() Request {
 	return d.req
 }

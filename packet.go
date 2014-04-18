@@ -21,8 +21,9 @@ const (
 type PacketGetter interface {
 	GetHType() uint8
 	GetHLen() uint8
+	GetXID() []byte
+	GetFlags() []byte
 	GetCHAddr() []byte
-	GetXID() [4]byte
 
 	GetCIAddr() net.IP
 	GetYIAddr() net.IP
@@ -89,6 +90,20 @@ func (p RawPacket) GetHLen() uint8 {
 	return uint8(p.HLen()[0])
 }
 
+// GetXID gets the packet's transaction ID.
+func (p RawPacket) GetXID() []byte {
+	var out [4]byte
+	copy(out[:], p.XID())
+	return out[:]
+}
+
+// GetFlags gets the packet's flags.
+func (p RawPacket) GetFlags() []byte {
+	var out [2]byte
+	copy(out[:], p.Flags())
+	return out[:]
+}
+
 // GetCHAddr gets the client's hardware address.
 func (p RawPacket) GetCHAddr() []byte {
 	var out [16]byte
@@ -100,13 +115,6 @@ func (p RawPacket) GetCHAddr() []byte {
 
 	copy(out[:], p.CHAddr()[0:hlen])
 	return out[0:hlen]
-}
-
-// GetXID gets the packet's transaction ID.
-func (p RawPacket) GetXID() [4]byte {
-	var out [4]byte
-	copy(out[:], p.XID())
-	return out
 }
 
 // GetCIAddr gets the current IP address of the client.
@@ -211,7 +219,7 @@ func NewPacket(o OpCode) Packet {
 }
 
 // NewReply creates and returns a new reply packet given a request.
-func NewReply(req Packet) Packet {
+func NewReply(req PacketGetter) Packet {
 	rep := NewPacket(BootReply)
 
 	// Hardware type and address length
@@ -219,12 +227,12 @@ func NewReply(req Packet) Packet {
 	rep.HLen()[0] = 6  // MAC-48 is 6 octets
 
 	// Copy transaction identifier
-	copy(rep.XID(), req.XID())
+	copy(rep.XID(), req.GetXID()[:])
 
 	// Copy fields from request (per RFC2131, section 4.3, table 3)
-	copy(rep.Flags(), req.Flags())
-	copy(rep.CHAddr(), req.CHAddr())
-	copy(rep.GIAddr(), req.GIAddr())
+	copy(rep.Flags(), req.GetFlags())
+	copy(rep.CHAddr(), req.GetCHAddr())
+	copy(rep.GIAddr(), req.GetGIAddr())
 
 	// The remainder of the fields are set depending on the outcome of the
 	// handler. Once the packet has been filled in, it should be validated before

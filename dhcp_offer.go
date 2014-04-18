@@ -7,7 +7,17 @@ import "encoding/binary"
 type DHCPOffer struct {
 	Packet
 
-	req Packet
+	req Request
+}
+
+func CreateDHCPOffer(req Request) DHCPOffer {
+	rep := DHCPOffer{
+		Packet: NewReply(req),
+		req:    req,
+	}
+
+	rep.SetMessageType(MessageTypeDHCPOffer)
+	return rep
 }
 
 // From RFC2131, table 3:
@@ -49,6 +59,6 @@ func (d DHCPOffer) ToBytes() ([]byte, error) {
 	return PacketToBytes(d.Packet, &opts)
 }
 
-func (d DHCPOffer) Request() Packet {
+func (d DHCPOffer) Request() Request {
 	return d.req
 }

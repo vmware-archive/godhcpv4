@@ -79,7 +79,7 @@ func (r *testReply) ToBytes() (b []byte, err error) {
 	return b, err
 }
 
-func (r *testReply) Request() Packet {
+func (r *testReply) Request() Request {
 	args := r.Called()
 	return args.Get(0).(Packet)
 }

@@ -6,15 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDHCPInformCreateDHCPAck(t *testing.T) {
-	req := DHCPInform{
-		Packet: NewPacket(BootRequest),
-	}
-
-	rep := req.CreateDHCPAck()
-	assert.Equal(t, MessageTypeDHCPAck, rep.GetMessageType())
-}
-
 // Test dispatch to ReplyWriter
 func TestDHCPInformWriteReply(t *testing.T) {
 	rw := &testReplyWriter{}
@@ -25,7 +16,7 @@ func TestDHCPInformWriteReply(t *testing.T) {
 	}
 
 	reps := []Reply{
-		req.CreateDHCPAck(),
+		CreateDHCPAck(req),
 	}
 
 	for _, rep := range reps {

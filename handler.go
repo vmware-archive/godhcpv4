@@ -45,7 +45,7 @@ func (rw *replyWriter) WriteReply(r Reply) error {
 
 	req := r.Request()
 	addr := rw.addr
-	bcast := req.Flags()[0] & 128
+	bcast := req.GetFlags()[0] & 128
 
 	// Broadcast the reply if the request packet has no address associated with
 	// it, or if the client explicitly asks for a broadcast reply.

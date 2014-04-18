@@ -8,23 +8,3 @@ type DHCPRequest struct {
 	Packet
 	ReplyWriter
 }
-
-func (req DHCPRequest) CreateDHCPAck() DHCPAck {
-	rep := DHCPAck{
-		Packet: NewReply(req.Packet),
-		req:    req.Packet,
-	}
-
-	rep.SetMessageType(MessageTypeDHCPAck)
-	return rep
-}
-
-func (req DHCPRequest) CreateDHCPNak() DHCPNak {
-	rep := DHCPNak{
-		Packet: NewReply(req.Packet),
-		req:    req.Packet,
-	}
-
-	rep.SetMessageType(MessageTypeDHCPNak)
-	return rep
-}

@@ -10,7 +10,7 @@ type Request interface {
 type Reply interface {
 	Validate() error
 	ToBytes() ([]byte, error)
-	Request() Packet
+	Request() Request
 
 	PacketSetter
 	OptionSetter

@@ -7,7 +7,17 @@ import "encoding/binary"
 type DHCPAck struct {
 	Packet
 
-	req Packet
+	req Request
+}
+
+func CreateDHCPAck(req Request) DHCPAck {
+	rep := DHCPAck{
+		Packet: NewReply(req),
+		req:    req,
+	}
+
+	rep.SetMessageType(MessageTypeDHCPAck)
+	return rep
 }
 
 // From RFC2131, table 3:
@@ -71,6 +81,6 @@ func (d DHCPAck) ToBytes() ([]byte, error) {
 	return PacketToBytes(d.Packet, &opts)
 }
 
-func (d DHCPAck) Request() Packet {
+func (d DHCPAck) Request() Request {
 	return d.req
 }

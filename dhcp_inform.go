@@ -6,13 +6,3 @@ type DHCPInform struct {
 	Packet
 	ReplyWriter
 }
-
-func (req DHCPInform) CreateDHCPAck() DHCPAck {
-	rep := DHCPAck{
-		Packet: NewReply(req.Packet),
-		req:    req.Packet,
-	}
-
-	rep.SetMessageType(MessageTypeDHCPAck)
-	return rep
-}
