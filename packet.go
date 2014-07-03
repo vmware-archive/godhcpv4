@@ -303,8 +303,10 @@ func PacketToBytes(p Packet, opts *packetToBytesOptions) ([]byte, error) {
 		b[2] = make([]byte, 0, 108-44)
 	}
 
-	// Write options to one of the buffers
-	for k, v := range p.OptionMap {
+	// Write options to one of the buffers.
+	// Iterate over options in numeric order.
+	for _, k := range sortedOptions(p.OptionMap) {
+		v := p.OptionMap[k]
 		l := 2 + len(v)
 
 		// TODO(PN): Deal with DHCP options of length > 255

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"net"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -52,6 +53,32 @@ type Option byte
 
 // OptionMap maps DHCP option tags to their values.
 type OptionMap map[Option][]byte
+
+// optionSlice defines a sortable array of options.
+type optionSlice []Option
+
+func (o optionSlice) Len() int {
+	return len(o)
+}
+
+func (o optionSlice) Less(i, j int) bool {
+	return o[i] < o[j]
+}
+
+func (o optionSlice) Swap(i, j int) {
+	x := o[i]
+	o[i] = o[j]
+	o[j] = x
+}
+
+func sortedOptions(om OptionMap) optionSlice {
+	ks := make(optionSlice, 0, len(om))
+	for k := range om {
+		ks = append(ks, k)
+	}
+	sort.Sort(ks)
+	return ks
+}
 
 // GetOption gets the []byte value of an option.
 func (om OptionMap) GetOption(o Option) ([]byte, bool) {
