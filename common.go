@@ -4,6 +4,9 @@ package dhcpv4
 type Request interface {
 	PacketGetter
 	OptionGetter
+
+	// Every request can tell where it came from.
+	InterfaceIndex() int
 }
 
 // Reply defines an interface implemented by DHCP replies.

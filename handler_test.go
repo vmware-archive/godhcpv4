@@ -14,7 +14,7 @@ type testPacketConn struct {
 	mock.Mock
 }
 
-func (pc *testPacketConn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
+func (pc *testPacketConn) ReadFrom(b []byte) (n int, addr net.Addr, ifindex int, err error) {
 	args := pc.Called(b)
 
 	switch arg0 := args.Get(0).(type) {
@@ -31,24 +31,37 @@ func (pc *testPacketConn) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
 	}
 
 	switch arg2 := args.Get(2).(type) {
-	case error:
-		err = arg2
+	case int:
+		ifindex = arg2
 	}
 
-	return n, addr, err
+	switch arg3 := args.Get(3).(type) {
+	case error:
+		err = arg3
+	}
+
+	return n, addr, ifindex, err
 }
 
-func (pc *testPacketConn) WriteTo(b []byte, addr net.Addr) (n int, err error) {
-	args := pc.Called(b, addr)
+func (pc *testPacketConn) WriteTo(b []byte, addr net.Addr, ifindex int) (n int, err error) {
+	args := pc.Called(b, addr, ifindex)
 	return args.Int(0), args.Error(1)
 }
 
+func (pc *testPacketConn) Close() error {
+	return nil
+}
+
+func (pc *testPacketConn) LocalAddr() net.Addr {
+	return &net.IPAddr{IP: net.IPv4zero}
+}
+
 func (pc *testPacketConn) ReadError(err error) {
-	pc.On("ReadFrom", mock.Anything).Return(nil, nil, io.EOF).Once()
+	pc.On("ReadFrom", mock.Anything).Return(nil, nil, -1, io.EOF).Once()
 }
 
 func (pc *testPacketConn) ReadSuccess(b []byte) {
-	pc.On("ReadFrom", mock.Anything).Return(b, nil, nil).Once()
+	pc.On("ReadFrom", mock.Anything).Return(b, nil, -1, nil).Once()
 }
 
 type testReply struct {
@@ -149,7 +162,7 @@ func TestReplyWriterDestinationAddress(t *testing.T) {
 		r.On("Request").Return(testCase.req)
 
 		pw := &testPacketConn{}
-		pw.On("WriteTo", mock.Anything, mock.Anything).Return(3, nil)
+		pw.On("WriteTo", mock.Anything, mock.Anything, mock.Anything).Return(3, nil)
 
 		rw := replyWriter{
 			pw:   pw,

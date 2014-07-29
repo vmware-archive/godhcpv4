@@ -1,33 +1,39 @@
 package dhcpv4
 
 import (
-	"fmt"
 	"net"
 
 	"code.google.com/p/go.net/ipv4"
 )
 
-// PacketReader defines the ReadFrom function as defined in net.PacketConn.
+// PacketReader defines an adaptation of the ReadFrom function (as defined
+// net.PacketConn) that includes the interface index the packet arrived on.
 type PacketReader interface {
-	ReadFrom(b []byte) (n int, addr net.Addr, err error)
+	ReadFrom(b []byte) (n int, addr net.Addr, ifindex int, err error)
 }
 
-// PacketWriter defines the ReadFrom function as defined in net.PacketConn.
+// PacketWriter defines an adaptation of the WriteTo function (as defined
+// net.PacketConn) that includes the interface index the packet should be sent
+// on.
 type PacketWriter interface {
-	WriteTo(b []byte, addr net.Addr) (n int, err error)
+	WriteTo(b []byte, addr net.Addr, ifindex int) (n int, err error)
 }
 
 // PacketConn groups PacketReader and PacketWriter to form a subset of net.PacketConn.
 type PacketConn interface {
 	PacketReader
 	PacketWriter
+
+	Close() error
+	LocalAddr() net.Addr
 }
 
 type replyWriter struct {
 	pw PacketWriter
 
 	// The client address, if any
-	addr net.UDPAddr
+	addr    net.UDPAddr
+	ifindex int
 }
 
 func (rw *replyWriter) WriteReply(r Reply) error {
@@ -53,7 +59,7 @@ func (rw *replyWriter) WriteReply(r Reply) error {
 		addr.IP = net.IPv4bcast
 	}
 
-	_, err = rw.pw.WriteTo(bytes, &addr)
+	_, err = rw.pw.WriteTo(bytes, &addr, rw.ifindex)
 	if err != nil {
 		return err
 	}
@@ -81,7 +87,7 @@ func Serve(pc PacketConn, h Handler) error {
 	buf := make([]byte, 65536)
 
 	for {
-		n, addr, err := pc.ReadFrom(buf)
+		n, addr, ifindex, err := pc.ReadFrom(buf)
 		if err != nil {
 			return err
 		}
@@ -91,14 +97,19 @@ func Serve(pc PacketConn, h Handler) error {
 			continue
 		}
 
+		// Stash interface index in packet structure
+		p.ifindex = ifindex
+
 		// Filter everything but requests
 		if OpCode(p.Op()[0]) != BootRequest {
 			continue
 		}
 
 		rw := replyWriter{
-			pw:   pc,
-			addr: *addr.(*net.UDPAddr),
+			pw: pc,
+
+			addr:    *addr.(*net.UDPAddr),
+			ifindex: ifindex,
 		}
 
 		var req Request
@@ -122,84 +133,46 @@ func Serve(pc PacketConn, h Handler) error {
 	}
 }
 
-// packetConnFilter wraps net.PacketConn and only reads and writes packet from
-// and to the specified network interface.
-type packetConnFilter struct {
+type packetConn struct {
 	net.PacketConn
-
 	ipv4pc *ipv4.PacketConn
-	ipv4cm *ipv4.ControlMessage
 }
 
-// ReadFrom reads a packet from the connection copying the payload into b. It
-// inherits its semantics from ipv4.PacketConn and subsequently net.PacketConn,
-// but filters out packets that arrived on an interface other than the one
-// specified in the packetConnFilter structure.
-func (p *packetConnFilter) ReadFrom(b []byte) (int, net.Addr, error) {
-	for {
-		n, cm, src, err := p.ipv4pc.ReadFrom(b)
-		if err != nil {
-			return n, src, err
-		}
-
-		// Read another packet if it didn't arrive on the right interface
-		if cm.IfIndex != p.ipv4cm.IfIndex {
-			continue
-		}
-
-		return n, src, err
-	}
-}
-
-// WriteTo writes a packet with payload b to addr. It inherits its semantics
-// from ipv4.PacketConn and subsequently net.PacketConn, but explicitly sends
-// the packet over the interface specified in the packetConnFilter structure.
-func (p *packetConnFilter) WriteTo(b []byte, addr net.Addr) (int, error) {
-	return p.ipv4pc.WriteTo(b, p.ipv4cm, addr)
-}
-
-// PacketConnFilter wraps a net.PacketConn and only reads packets from and
-// writes packets to the network interface associated with the specified IP
-// address. It may return an error if it cannot initialize the underlying
-// socket correctly. It panics if it cannot find the network interface
-// associated with the specified IP.
-func PacketConnFilter(pc net.PacketConn, ip net.IP) (net.PacketConn, error) {
+// NewPacketConn returns a PacketConn based on the specified net.PacketConn.
+// It adds functionality to return the interface index from calls to ReadFrom
+// and include the interface index argument in calls to WriteTo.
+func NewPacketConn(pc net.PacketConn) (PacketConn, error) {
 	ipv4pc := ipv4.NewPacketConn(pc)
 	if err := ipv4pc.SetControlMessage(ipv4.FlagInterface, true); err != nil {
 		return nil, err
 	}
 
-	p := packetConnFilter{
+	p := packetConn{
 		PacketConn: pc,
-
-		ipv4pc: ipv4pc,
-		ipv4cm: &ipv4.ControlMessage{
-			IfIndex: LookupInterfaceIndexForIP(ip),
-		},
+		ipv4pc:     ipv4pc,
 	}
 
 	return &p, nil
 }
 
-// LookupInterfaceIndexForIP finds the system-wide network interface index that
-// is associated with the specified IP address.
-func LookupInterfaceIndexForIP(ip net.IP) int {
-	is, err := net.Interfaces()
+// ReadFrom reads a packet from the connection copying the payload into b. It
+// returns the network interface index the packet arrived on in addition to the
+// default return values of the ReadFrom function.
+func (p *packetConn) ReadFrom(b []byte) (int, net.Addr, int, error) {
+	n, cm, src, err := p.ipv4pc.ReadFrom(b)
 	if err != nil {
-		panic(err)
-	}
-	for _, i := range is {
-		as, err := i.Addrs()
-		if err != nil {
-			panic(err)
-		}
-		for _, a := range as {
-			if a.(*net.IPNet).IP.String() == ip.String() {
-				return i.Index
-			}
-		}
+		return n, src, -1, err
 	}
 
-	// Not really a recoverable error...
-	panic(fmt.Sprintf("dhcpv4: can't find network interface for: %s", ip))
+	return n, src, cm.IfIndex, err
+}
+
+// WriteTo writes a packet with payload b to addr. It explicitly sends the
+// packet over the network interface  with the specified index.
+func (p *packetConn) WriteTo(b []byte, addr net.Addr, ifindex int) (int, error) {
+	cm := &ipv4.ControlMessage{
+		IfIndex: ifindex,
+	}
+
+	return p.ipv4pc.WriteTo(b, cm, addr)
 }
