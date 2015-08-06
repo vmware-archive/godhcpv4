@@ -1,15 +1,16 @@
-# dhcpv4
+# godhcpv4
 
-A package implementing DHCPv4 packet deserialization and serialization.
+DHCPv4 packet serialization/deserialization.
 
-## Purpose
+Includes a handler to create your own DHCPv4 server with (see [`handler.go`](./handler.go)).
 
-The purpose of this library is to facilitate both creating DHCPv4 clients and
-servers. It tries to have no predisposition what it is being used for.
-
-# RFCs
+## RFCs
 
 Other RFCs are informational or obsoleted by newer versions.
 
-* [2131][https://tools.ietf.org/html/rfc2131]: Dynamic Host Configuration Protocol
-* [3396][https://tools.ietf.org/html/rfc3396]: Encoding Long Options in the Dynamic Host Configuration Protocol (DHCPv4)
+* [2131](https://tools.ietf.org/html/rfc2131): Dynamic Host Configuration Protocol
+* [3396](https://tools.ietf.org/html/rfc3396): Encoding Long Options in the Dynamic Host Configuration Protocol (DHCPv4)
+
+## License
+
+This project is available under the [Apache 2.0](./LICENSE) license.
